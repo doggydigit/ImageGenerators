@@ -11,7 +11,8 @@ def main(level=0, loading=False, training=True, viewing=False):
     # viewing = False
     # level = 0
 
-    generator = 'outshape'
+    # generator = 'outshape'
+    generator = 'full'
 
     mnistbool = False
     cifar10bool = True
@@ -67,7 +68,7 @@ def main(level=0, loading=False, training=True, viewing=False):
         raise NotImplementedError
 
     # Build Network
-    batch_size = 500
+    batch_size = 1000
     occ_img_placeholder = tf.placeholder(tf.float32, [batch_size, imsize, imsize, colors])
     msk_placeholder = tf.placeholder(tf.float32, [batch_size, imsize, imsize])
     if mnistbool:
@@ -77,6 +78,8 @@ def main(level=0, loading=False, training=True, viewing=False):
             img_recons = tiny_outoutgen_network(occ_img_placeholder, msk_placeholder)
         elif generator is 'outshape':
             img_recons = tiny_outshapegen_network(occ_img_placeholder, msk_placeholder)
+        elif generator is 'full':
+            img_recons = tiny_full_network(occ_img_placeholder, msk_placeholder)
     elif klab325bool:
         raise NotImplementedError
     else:
@@ -86,7 +89,7 @@ def main(level=0, loading=False, training=True, viewing=False):
     #
     # Build Optimizer
     #
-    train_iters = 3000
+    train_iters = 10000
     true_img_placeholder = tf.placeholder(tf.float32, shape=[batch_size, imsize * imsize * colors])
     y_train = np.reshape(y_train, (nr_train, imsize * imsize * colors))
     lx = binary_crossentropy(true_img_placeholder, tf.reshape(img_recons, [batch_size, imsize * imsize * colors]))
@@ -162,8 +165,8 @@ def main(level=0, loading=False, training=True, viewing=False):
 
 if __name__ == "__main__":
 
-    # prog = 'training'
-    prog = 'viewing'
+    prog = 'training'
+    # prog = 'viewing'
 
     if prog is 'training':
         main(0)

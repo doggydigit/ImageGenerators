@@ -49,7 +49,31 @@ def deconv(img, target_sz, target_dim, stri, name, sigbool=False):
         return tf.nn.relu(out)
 
 
+def fullnet(img, msk, imgsz, msksz, tgtsz, name, sigbool=False):
+    imgshp = img.get_shape()
+    imgweights = tf.get_variable('imgw_' + name,
+                             [imgsz, tgtsz],
+                             dtype=tf.float32,
+                             initializer=tf.truncated_normal_initializer(stddev=0.02))
+    mskweights = tf.get_variable('mskw_' + name,
+                                 [msksz, tgtsz],
+                                 dtype=tf.float32,
+                                 initializer=tf.truncated_normal_initializer(stddev=0.02))
+    biases = tf.get_variable('b_' + name,
+                             [tgtsz],
+                             dtype=tf.float32,
+                             initializer=tf.truncated_normal_initializer(stddev=0.02))
+    out = tf.matmul(img, imgweights) + tf.matmul(img, imgweights) + biases
+
+    if sigbool:
+        return tf.nn.sigmoid(out)
+    else:
+        return tf.nn.relu(out)
+
+
 def binary_crossentropy(t, o):
+    # print(max(o))
+    # print(max(t))
     eps = 1e-6
     # o = tf.Print(o, [tf.count_nonzero(tf.is_nan(o))], 'this is o:')
     # t = tf.Print(t, [tf.count_nonzero(tf.is_nan(t))], 'this is t:')

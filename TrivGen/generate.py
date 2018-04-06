@@ -35,13 +35,13 @@ def tiny_outoutgen_network(image, mask, reuse=False):
         # l3 = conv_relu_pool(l2, 4, 2, 16, '3')
         l4 = deconv(l3, 16, 8, 4, '4')
         out = deconv(l4, 32, 3, 2, '5', True)
-        print(l1small.shape)
-        print(l2small.shape)
-        print(l2big.shape)
-        print(l2.shape)
-        print(l3.shape)
-        print(l4.shape)
-        print(out.shape)
+    # print(l1small.shape)
+    # print(l2small.shape)
+    # print(l2big.shape)
+    # print(l2.shape)
+    # print(l3.shape)
+    # print(l4.shape)
+    # print(out.shape)
     return out
 
 
@@ -62,11 +62,29 @@ def tiny_outshapegen_network(image, mask, reuse=False):
         l5 = deconv(l4, 16, 6, 2, '5')
         l6 = deconv(l5, 32, 3, 2, '6', True)
         out = tf.multiply(image, tf.expand_dims(mask, 3)) + tf.multiply(l6, tf.expand_dims(tf.ones(mask.shape)-mask, 3))
-    # print(l1small.shape)
-    # print(l2small.shape)
-    # print(l2big.shape)
-    # print(l2.shape)
-    # print(l3.shape)
-    # print(l4.shape)
-    # print(out.shape)
+    print(l1small.shape)
+    print(l2small.shape)
+    print(l2big.shape)
+    print(l2.shape)
+    print(l3.shape)
+    print(l4.shape)
+    print(out.shape)
+    return out
+
+
+def tiny_full_network(image, mask, reuse=False):
+    """For tiny images of size 32x32."""
+    with tf.variable_scope('trivgen'):
+        if reuse:
+            tf.get_variable_scope().reuse_variables()
+        imgshp = image.shape
+        mskcnst = imgshp[1]*imgshp[2]
+        imgcnst = mskcnst*imgshp[3]
+        flatimage = tf.reshape(image, [imgshp[0], imgcnst])
+        flatmask = tf.reshape(mask, [imgshp[0], imgshp[1]*imgshp[2]])
+        lcnst = int(int(imgcnst)/4)
+        l1 = fullnet(flatimage, flatmask, imgcnst, mskcnst, lcnst, '1')
+        l2 = fullnet(l1, flatmask, lcnst, mskcnst, imgcnst, '2', True)
+        out = tf.reshape(l2, [imgshp[0], imgshp[1], imgshp[2], imgshp[3]])
+
     return out
