@@ -12,7 +12,8 @@ def main(level=0, loading=False, training=True, viewing=False):
     # level = 0
 
     # generator = 'outshape'
-    generator = 'full'
+    # generator = 'full'
+    generator = 'fullfull'
 
     train_cnst = 500
 
@@ -92,6 +93,8 @@ def main(level=0, loading=False, training=True, viewing=False):
             img_recons = tiny_outshapegen_network(occ_img_placeholder, msk_placeholder)
         elif generator is 'full':
             img_recons = tiny_full_network(occ_img_placeholder, msk_placeholder)
+        elif generator is 'fullfull':
+            img_recons = tiny_fullfull_network(occ_img_placeholder, msk_placeholder)
     elif klab325bool:
         raise NotImplementedError
     else:
