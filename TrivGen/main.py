@@ -14,6 +14,8 @@ def main(level=0, loading=False, training=True, viewing=False):
     # generator = 'outshape'
     generator = 'full'
 
+    train_cnst = 500
+
     mnistbool = False
     cifar10bool = True
     klab325bool = False
@@ -45,20 +47,30 @@ def main(level=0, loading=False, training=True, viewing=False):
         # colors = 1
         raise NotImplementedError
     elif cifar10bool:
-        with open(curdir + '/../Occlude/occluded_cifar10_level' + str(level) + '.pickle', 'rb') as f:
+
+        with open(curdir + '/../Occlude/occluded_cifar10_level0.pickle', 'rb') as f:
             y, x, masks = pickle.load(f)
         xshape = x.shape
         nr_samples = int(xshape[0])
         imsize = int(xshape[1])
         colors = int(xshape[3])
-        nr_test = int(nr_samples/10)
+        nr_test = int(nr_samples / 10)
         nr_train = nr_samples - nr_test
         x_train = x[:nr_train, :, :, :] / 255
         y_train = y[:nr_train, :, :, :] / 255
         msk_train = masks[:nr_train, :, :]
-        x_test = x[nr_train:, :, :, :]
-        y_test = y[nr_train:, :, :, :]
+        x_test = x[nr_train:, :, :, :] / 255
+        y_test = y[nr_train:, :, :, :] / 255
         msk_test = masks[nr_train:, :, :]
+        for i in range(1, level+1):
+            with open(curdir + '/../Occlude/occluded_cifar10_level' + str(level) + '.pickle', 'rb') as f:
+                y, x, masks = pickle.load(f)
+            y_train = np.concatenate((y_train, y[:nr_train, :, :, :] / 255), axis=0)
+            x_train = np.concatenate((x_train, x[:nr_train, :, :, :] / 255), axis=0)
+            msk_train = np.concatenate((msk_train, masks[:nr_train, :, :] / 255), axis=0)
+            y_test = np.concatenate((y_test, y[nr_train:, :, :, :] / 255), axis=0)
+            x_test = np.concatenate((x_test, x[nr_train:, :, :, :] / 255), axis=0)
+            msk_test = np.concatenate((msk_test, masks[nr_train:, :, :] / 255), axis=0)
         del x, y, masks
     elif klab325bool:
         # imsize = 28
@@ -89,7 +101,7 @@ def main(level=0, loading=False, training=True, viewing=False):
     #
     # Build Optimizer
     #
-    train_iters = 10000
+    train_iters = nr_samples * train_cnst / batch_size
     true_img_placeholder = tf.placeholder(tf.float32, shape=[batch_size, imsize * imsize * colors])
     y_train = np.reshape(y_train, (nr_train, imsize * imsize * colors))
     lx = binary_crossentropy(true_img_placeholder, tf.reshape(img_recons, [batch_size, imsize * imsize * colors]))
@@ -121,7 +133,8 @@ def main(level=0, loading=False, training=True, viewing=False):
         sess.run(tf.global_variables_initializer())
 
     if training:
-        print('Training Network...')
+        print('Training ' + generator + ' network with difficulty level ' + str(level) + 'for ' + str(train_iters) +
+              ' iterations...')
         indices = list(range(nr_train))
         for i in range(train_iters):
             isis = random.sample(indices, batch_size)
