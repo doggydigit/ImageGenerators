@@ -1,9 +1,8 @@
 from occlude import *
 
 
-def main():
+def main(level=4):
 
-    level = 5
     minsz, maxsz = getlevel(level)
     images, labels = load_cifar10()
     occluded_imgs, masks = occlude(images, minsz, maxsz)
@@ -12,4 +11,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    for i in range(5):
+        main(i)

@@ -88,3 +88,22 @@ def tiny_full_network(image, mask, reuse=False):
         out = tf.reshape(l2, [imgshp[0], imgshp[1], imgshp[2], imgshp[3]])
 
     return out
+
+
+def tiny_fullfull_network(image, mask, reuse=False):
+    """For tiny images of size 32x32."""
+    with tf.variable_scope('trivgen'):
+        if reuse:
+            tf.get_variable_scope().reuse_variables()
+        imgshp = image.shape
+        mskcnst = imgshp[1]*imgshp[2]
+        imgcnst = mskcnst*imgshp[3]
+        flatimage = tf.reshape(image, [imgshp[0], imgcnst])
+        flatmask = tf.reshape(mask, [imgshp[0], imgshp[1]*imgshp[2]])
+        l1 = fullnet(flatimage, flatmask, imgcnst, mskcnst, imgcnst, '1')
+        l2 = fullnet(l1, flatmask, imgcnst, mskcnst, imgcnst, '2')
+        l3 = fullnet(l2, flatmask, imgcnst, mskcnst, imgcnst, '3', True)
+        l3img = tf.reshape(l3, [imgshp[0], imgshp[1], imgshp[2], imgshp[3]])
+        out = tf.multiply(image, tf.expand_dims(mask, 3)) + \
+              tf.multiply(l3img, tf.expand_dims(tf.ones(mask.shape) - mask, 3))
+    return out
