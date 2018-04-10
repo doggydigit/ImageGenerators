@@ -75,8 +75,8 @@ def binary_crossentropy(t, o):
     # print(max(o))
     # print(max(t))
     eps = 1e-6
-    # o = tf.Print(o, [tf.count_nonzero(tf.is_nan(o))], 'this is o:')
-    # t = tf.Print(t, [tf.count_nonzero(tf.is_nan(t))], 'this is t:')
+    # o = tf.Print(o, [np.max(np.max(np.max(np.max(o))))], 'this is o:')
+    # t = tf.Print(t, [np.max(np.max(np.max(t)))], 'this is t:')
     # j = 1.0 - o + eps
     # j = tf.Print(j, [tf.count_nonzero(tf.is_nan(j))], 'this is j:')
     # a = tf.log(j)

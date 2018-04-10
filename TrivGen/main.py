@@ -15,7 +15,7 @@ def main(level=0, loading=False, training=True, viewing=False):
     # generator = 'full'
     generator = 'fullfull'
 
-    train_cnst = 500
+    train_cnst = 5
 
     mnistbool = False
     cifar10bool = True
@@ -68,10 +68,13 @@ def main(level=0, loading=False, training=True, viewing=False):
                 y, x, masks = pickle.load(f)
             y_train = np.concatenate((y_train, y[:nr_train, :, :, :] / 255), axis=0)
             x_train = np.concatenate((x_train, x[:nr_train, :, :, :] / 255), axis=0)
-            msk_train = np.concatenate((msk_train, masks[:nr_train, :, :] / 255), axis=0)
+            msk_train = np.concatenate((msk_train, masks[:nr_train, :, :]), axis=0)
             y_test = np.concatenate((y_test, y[nr_train:, :, :, :] / 255), axis=0)
             x_test = np.concatenate((x_test, x[nr_train:, :, :, :] / 255), axis=0)
-            msk_test = np.concatenate((msk_test, masks[nr_train:, :, :] / 255), axis=0)
+            msk_test = np.concatenate((msk_test, masks[nr_train:, :, :]), axis=0)
+        nr_test = x_test.shape[0]
+        nr_train = x_train.shape[0]
+        nr_samples = nr_train + nr_test
         del x, y, masks
     elif klab325bool:
         # imsize = 28
@@ -104,12 +107,13 @@ def main(level=0, loading=False, training=True, viewing=False):
     #
     # Build Optimizer
     #
-    train_iters = nr_samples * train_cnst / batch_size
+    train_iters = int(nr_samples * train_cnst / batch_size)
     true_img_placeholder = tf.placeholder(tf.float32, shape=[batch_size, imsize * imsize * colors])
     y_train = np.reshape(y_train, (nr_train, imsize * imsize * colors))
     lx = binary_crossentropy(true_img_placeholder, tf.reshape(img_recons, [batch_size, imsize * imsize * colors]))
-    lx = tf.reduce_sum(lx, 1)
-    cost = tf.reduce_mean(lx)
+    lx = tf.reduce_mean(tf.reduce_sum(lx, 1))
+    l2 = tf.reduce_mean(0.0001 * tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)))
+    cost = lx+l2
     optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.5)
     # grads = optimizer.compute_gradients(cost)
     # for i, (g, v) in enumerate(grads):
@@ -119,8 +123,12 @@ def main(level=0, loading=False, training=True, viewing=False):
     trainer = optimizer.minimize(cost)
     fetches = []
     # fetches.extend([train_op, Lx])
-    fetches.extend([trainer, cost])
+    # fetches.extend([cost, trainer])
+    # lxs = [0] * train_iters
+    fetches.extend([lx, l2, cost, trainer])
     lxs = [0] * train_iters
+    l2s = [0] * train_iters
+    costs = [0] * train_iters
 
     #
     # Train Network
@@ -136,7 +144,7 @@ def main(level=0, loading=False, training=True, viewing=False):
         sess.run(tf.global_variables_initializer())
 
     if training:
-        print('Training ' + generator + ' network with difficulty level ' + str(level) + 'for ' + str(train_iters) +
+        print('Training ' + generator + ' network with difficulty level ' + str(level) + ' for ' + str(train_iters) +
               ' iterations...')
         indices = list(range(nr_train))
         for i in range(train_iters):
@@ -149,9 +157,11 @@ def main(level=0, loading=False, training=True, viewing=False):
             # mask_batch = masks[i * batch_size:(i+1) * batch_size, :, :]
             feed_dict = {true_img_placeholder: true_batch, occ_img_placeholder: occ_batch, msk_placeholder: mask_batch}
             results = sess.run(fetches, feed_dict)
-            _, lxs[i] = results
-            if i % 100 == 0:
-                print("iter=%d : Cost: %f" % (i, lxs[i]))
+            lxs[i], l2s[i], costs[i], _ = results
+            # print(lxs)
+            if i % 50 == 0:
+                # print("iter=%d : Cost: %f" % (i, lxs[i]))
+                print("iter=%d : Cost is %f, Lx is %f, L2 is %f" % (i, costs[i], lxs[i], l2s[i]))
 
         # Save Model
         ckpt_file = os.path.join(save_dir, "drawmodel.ckpt")
@@ -173,24 +183,28 @@ def main(level=0, loading=False, training=True, viewing=False):
         with open('reconstruction_' + generator + '.pickle', 'wb') as handle:
             pickle.dump((occ_batch, y_test[isis, :], mask_batch, reconstructed_imgs, testerror),
                         handle, protocol=pickle.HIGHEST_PROTOCOL)
-        plt.imshow(reconstructed_imgs[0, :, :, :], interpolation='nearest')
-        plt.show()
+
+        # for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='trivgen'):
+        #     print(i)
+
+        # plt.imshow(reconstructed_imgs[0, :, :, :], interpolation='nearest')
+        # plt.show()
 
     sess.close()
 
 
 if __name__ == "__main__":
 
-    prog = 'training'
-    # prog = 'viewing'
+    # prog = 'training'
+    prog = 'viewing'
 
     if prog is 'training':
-        main(0)
-        tf.reset_default_graph()
-        for lev in range(1, 5):
+        # main(0)
+        # tf.reset_default_graph()
+        for lev in range(1, 6):
             main(lev, True)
             tf.reset_default_graph()
     elif prog is 'viewing':
-        main(4, True, False, True)
+        main(3, True, False, True)
     else:
         raise NotImplementedError

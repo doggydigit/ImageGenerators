@@ -102,8 +102,11 @@ def tiny_fullfull_network(image, mask, reuse=False):
         flatmask = tf.reshape(mask, [imgshp[0], imgshp[1]*imgshp[2]])
         l1 = fullnet(flatimage, flatmask, imgcnst, mskcnst, imgcnst, '1')
         l2 = fullnet(l1, flatmask, imgcnst, mskcnst, imgcnst, '2')
-        l3 = fullnet(l2, flatmask, imgcnst, mskcnst, imgcnst, '3', True)
-        l3img = tf.reshape(l3, [imgshp[0], imgshp[1], imgshp[2], imgshp[3]])
-        out = tf.multiply(image, tf.expand_dims(mask, 3)) + \
-              tf.multiply(l3img, tf.expand_dims(tf.ones(mask.shape) - mask, 3))
+        l3 = fullnet(l2, flatmask, imgcnst, mskcnst, imgcnst, '3')
+        l4pre = fullnet(l3, flatmask, imgcnst, mskcnst, imgcnst, '4')
+        l4 = tf.concat([flatimage, l4pre], 1)
+        l5 = fullnet(l4, flatmask, 2*int(imgcnst), mskcnst, imgcnst, '5', True)
+        l5img = tf.reshape(l5, [imgshp[0], imgshp[1], imgshp[2], imgshp[3]])
+        out = (tf.multiply(image, tf.expand_dims(mask, 3)) +
+               tf.multiply(l5img, tf.expand_dims(tf.ones(mask.shape) - mask, 3)))
     return out

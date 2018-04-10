@@ -11,15 +11,13 @@ def unpickle(file: object) -> object:
     return cif
 
 
-def getlevel(level):
-    levels = [()] * 6
-    levels[0] = (2, 4)
-    levels[1] = (4, 6)
-    levels[2] = (6, 8)
-    levels[3] = (8, 10)
-    levels[4] = (10, 12)
-    levels[5] = (12, 14)
-    return levels[level]
+def getlevel(level, dataset):
+    if dataset is 'cifar':
+        return 2 + 2 * level, 2 + 2 * (level + 1)
+    elif dataset is 'coco':
+        return 50 + 50 * level, 50 + 50 * (level + 1)
+    else:
+        raise NotImplementedError
 
 
 def load_cifar10():
