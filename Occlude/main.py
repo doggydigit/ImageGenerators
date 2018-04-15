@@ -10,7 +10,7 @@ def main(level=4, dataset='cifar'):
         with open('occluded_cifar10_level' + str(level) + '.pickle', 'wb') as handle:
             pickle.dump((images, occluded_imgs, masks), handle, protocol=pickle.HIGHEST_PROTOCOL)
     elif dataset is 'imagenet':
-        for batch in range(106):
+        for batch in range(20):
             images, labels, boxes = load_imagenet(batch)
             occluded_imgs, masks = occlude_imagenet(images, minsz, maxsz)
             with open('occluded_imagenet_batch' + str(batch) + '_level' + str(level) + '.pickle', 'wb') as handle:
