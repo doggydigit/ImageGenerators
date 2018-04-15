@@ -5,7 +5,6 @@ import numpy as np
 
 
 def unpickle(file: object) -> object:
-
     with open(file, 'rb') as fo:
         cif = pickle.load(fo, encoding='bytes')
     return cif
@@ -15,7 +14,10 @@ def getlevel(level, dataset):
     if dataset is 'cifar':
         return 2 + 2 * level, 2 + 2 * (level + 1)
     elif dataset is 'coco':
-        return 50 + 50 * level, 50 + 50 * (level + 1)
+        return  10 + 50 * level, 10 + 50 * (level + 1)
+    elif dataset is 'imagenet':
+        # return 10 + 50 * level, 10 + 50 * (level + 1)
+        return 0.05 + 0.1 * level, 0.05 + 0.1 * (level + 1)
     else:
         raise NotImplementedError
 
@@ -37,3 +39,11 @@ def load_cifar10():
 
 def load_cifar100():
     raise NotImplementedError
+
+
+def load_imagenet(batch=0):
+    curdir = os.path.dirname(os.path.abspath(__file__))
+    images, labels, boxes = unpickle(curdir + '/../Imagenet/Images/Batches/imagenet_batch' + str(batch) + '.pickle')
+    images = np.array(images)
+    # print(images[0].shape)
+    return images, labels, boxes

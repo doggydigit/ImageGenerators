@@ -15,10 +15,10 @@ def add_occluder(img, size, cx, cy, shape=None):
     ishape = img.shape[0:2]
     oi = img
     if i is 0:
-        a, b = skd.circle(cx, cy, size)
+        a, b = skd.circle(cy, cx, size)
         #print('circle')
     elif i is 1:
-        a, b = skd.polygon([cx-size, cx+size, cx+size, cx-size], [cy-size, cy-size, cy+size, cy+size], shape=ishape)
+        a, b = skd.polygon([cy-size, cy-size, cy+size, cy+size], [cx-size, cx+size, cx+size, cx-size], shape=ishape)
         #print('rectangle')
     elif i is 2:
         long = cy + int(1.1547 * size)
@@ -49,4 +49,19 @@ def occlude(imgs, minsz, maxsz):
         cx = np.random.randint(radius, imsizes[1]-radius)
         cy = np.random.randint(radius, imsizes[2]-radius)
         occ_imgs[i, :, :, :], msks[i, :, :] = add_occluder(occ_imgs[i, :, :, :], radius, cx, cy)
+    return occ_imgs, msks
+
+
+def occlude_imagenet(imgs, minsz, maxsz):
+    nr_imgs = len(imgs)
+    occ_imgs = imgs[:]
+    msks = [None] * nr_imgs
+    for i in range(nr_imgs):
+        szs = imgs[i].shape
+        ms = np.min(szs[0:1])
+        radius = np.random.randint(ms * minsz, ms * maxsz)
+        cx = np.random.randint(radius, szs[1]-radius-1)
+        cy = np.random.randint(radius, szs[0]-radius-1)
+        # print(szs, radius, cx, cy)
+        occ_imgs[i], msks[i] = add_occluder(occ_imgs[i], radius, cx, cy)
     return occ_imgs, msks

@@ -62,13 +62,6 @@ def tiny_outshapegen_network(image, mask, reuse=False):
         l5 = deconv(l4, 16, 6, 2, '5')
         l6 = deconv(l5, 32, 3, 2, '6', True)
         out = tf.multiply(image, tf.expand_dims(mask, 3)) + tf.multiply(l6, tf.expand_dims(tf.ones(mask.shape)-mask, 3))
-    print(l1small.shape)
-    print(l2small.shape)
-    print(l2big.shape)
-    print(l2.shape)
-    print(l3.shape)
-    print(l4.shape)
-    print(out.shape)
     return out
 
 

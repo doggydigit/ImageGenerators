@@ -11,9 +11,9 @@ def main(level=0, loading=False, training=True, viewing=False):
     # viewing = False
     # level = 0
 
-    # generator = 'outshape'
+    generator = 'outshape'
     # generator = 'full'
-    generator = 'fullfull'
+    # generator = 'fullfull'
 
     train_cnst = 5
 
@@ -115,26 +115,20 @@ def main(level=0, loading=False, training=True, viewing=False):
     l2 = tf.reduce_mean(0.0001 * tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)))
     cost = lx+l2
     optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.5)
-    # grads = optimizer.compute_gradients(cost)
-    # for i, (g, v) in enumerate(grads):
-    #     if g is not None:
-    #         grads[i] = (tf.clip_by_norm(g, 5), v)
-    # train_op = optimizer.apply_gradients(grads)
     trainer = optimizer.minimize(cost)
     fetches = []
-    # fetches.extend([train_op, Lx])
-    # fetches.extend([cost, trainer])
-    # lxs = [0] * train_iters
-    fetches.extend([lx, l2, cost, trainer])
+
+    fetches.extend([cost, trainer])
     lxs = [0] * train_iters
-    l2s = [0] * train_iters
-    costs = [0] * train_iters
+    # fetches.extend([lx, l2, cost, trainer])
+    # lxs = [0] * train_iters
+    # l2s = [0] * train_iters
+    # costs = [0] * train_iters
 
     #
     # Train Network
     #
     sess = tf.InteractiveSession()
-    # with tf.Session() as sess:
     saver = tf.train.Saver()  # For later saving
     tf.global_variables_initializer().run()
     if loading:
@@ -157,11 +151,12 @@ def main(level=0, loading=False, training=True, viewing=False):
             # mask_batch = masks[i * batch_size:(i+1) * batch_size, :, :]
             feed_dict = {true_img_placeholder: true_batch, occ_img_placeholder: occ_batch, msk_placeholder: mask_batch}
             results = sess.run(fetches, feed_dict)
-            lxs[i], l2s[i], costs[i], _ = results
+            # lxs[i], l2s[i], costs[i], _ = results
+            lxs[i], _ = results
             # print(lxs)
             if i % 50 == 0:
-                # print("iter=%d : Cost: %f" % (i, lxs[i]))
-                print("iter=%d : Cost is %f, Lx is %f, L2 is %f" % (i, costs[i], lxs[i], l2s[i]))
+                print("iter=%d : Cost: %f" % (i, lxs[i]))
+                # print("iter=%d : Cost is %f, Lx is %f, L2 is %f" % (i, costs[i], lxs[i], l2s[i]))
 
         # Save Model
         ckpt_file = os.path.join(save_dir, "drawmodel.ckpt")
@@ -199,12 +194,12 @@ if __name__ == "__main__":
     prog = 'viewing'
 
     if prog is 'training':
-        # main(0)
-        # tf.reset_default_graph()
+        main(0)
+        tf.reset_default_graph()
         for lev in range(1, 6):
             main(lev, True)
             tf.reset_default_graph()
     elif prog is 'viewing':
-        main(3, True, False, True)
+        main(5, True, False, True)
     else:
         raise NotImplementedError
