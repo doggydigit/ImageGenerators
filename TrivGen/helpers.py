@@ -15,25 +15,20 @@ def conv_relu_pool(img, filter_size, pool_sz, nr_filters, name, msk=None):
     if msk is None:
         h_conv = tf.nn.relu(tf.nn.conv2d(input=img, filter=w_conv, strides=[1, 1, 1, 1], padding='SAME') + b_conv)
     else:
-        # a = tf.expand_dims(b_conv, 0)
-        # b = tf.expand_dims(msk, 3)
-        # print(a.shape)
-        # print(b.shape)
-        # tf.tensordot(a, b, 1)
         h_conv = tf.nn.relu(tf.nn.conv2d(input=img, filter=w_conv, strides=[1, 1, 1, 1], padding='SAME')
                             + tf.tensordot(tf.expand_dims(msk, 3), tf.expand_dims(b_conv, 0), 1))
     h_pool = tf.nn.max_pool(h_conv, ksize=[1, pool_sz, pool_sz, 1], strides=[1, pool_sz, pool_sz, 1], padding='SAME')
     return h_pool
 
 
-def deconv(img, target_sz, target_dim, stri, name, sigbool=False):
+def deconv(img, target_sz, target_dim, stri, name, fsz=6, sigbool=False):
     output_shape = [int(img.get_shape()[0]), target_sz, target_sz, target_dim]
 
     # print(output_shape)
     # print(img.shape)
 
     w_deco = tf.get_variable('wdeco' + name,
-                             [6, 6, target_dim, img.get_shape()[-1]],
+                             [fsz, fsz, target_dim, img.get_shape()[-1]],
                              dtype=tf.float32,
                              initializer=tf.truncated_normal_initializer(stddev=0.1))
     b_deco = tf.get_variable('bdeco' + name, [target_dim], dtype=tf.float32, initializer=tf.constant_initializer(.1))
@@ -50,15 +45,10 @@ def deconv(img, target_sz, target_dim, stri, name, sigbool=False):
 
 
 def fullnet(img, msk, imgsz, msksz, tgtsz, name, sigbool=False):
-    imgshp = img.get_shape()
     imgweights = tf.get_variable('imgw_' + name,
                              [imgsz, tgtsz],
                              dtype=tf.float32,
                              initializer=tf.truncated_normal_initializer(stddev=0.02))
-    mskweights = tf.get_variable('mskw_' + name,
-                                 [msksz, tgtsz],
-                                 dtype=tf.float32,
-                                 initializer=tf.truncated_normal_initializer(stddev=0.02))
     biases = tf.get_variable('b_' + name,
                              [tgtsz],
                              dtype=tf.float32,
@@ -90,3 +80,15 @@ def binary_crossentropy(t, o):
     # return -(d + b * a)
     return -(t * tf.log(o + eps) + (1.0 - t) * tf.log(1.0 - o + eps))
 
+
+def load_imagenet(batch, level, trainingbool):
+    if trainingbool:
+        loaded = np.load('../Occlude/occluded_cropped_imagenet_batch' + str(batch) +
+                         '_level' + str(level) + '.npz')
+    else:
+        loaded = np.load('../Occlude/occluded_cropped_imagenet_batch' + str(batch) +
+                         '_level' + str(level) + '.npz')
+    return loaded['images'], loaded['occluded_imgs'], loaded['masks']
+
+
+def load_c101():

@@ -2,39 +2,56 @@ import os
 import pickle
 import random
 from generate import *
-from matplotlib import pyplot as plt
 
 
 def main(level=0, loading=False, training=True, viewing=False):
-    # training = True
-    # loading = True
-    # viewing = False
-    # level = 0
 
-    generator = 'outshape'
+    testing = True
+
+    # generator = 'outshape'
+    generator = 'deepoutshape'
     # generator = 'full'
     # generator = 'fullfull'
 
     train_cnst = 5
+    gan = False
 
     mnistbool = False
-    cifar10bool = True
+    cifar10bool = False
     klab325bool = False
+    imgnetbool = False
+    c101bool = True
 
     #
     # Initialize stuff
     #
     if cifar10bool:
+        nr_batches = 1
+        trainprintint = 50
         datadir = 'models/CIFAR10_'
+    elif imgnetbool:
+        nr_batches = 20
+        trainprintint = 1
+        datadir = 'models/Imagenet_'
+    elif c101bool:
+        datadir = 'models/Imagenet_'
+        if training:
+            raise NotImplementedError
     else:
         raise NotImplementedError
     if training:
         loadlevel = str(level-1)
     else:
         loadlevel = str(level)
-    save_dir = datadir + generator + '_level' + str(level) + '/'
-    load_dir = datadir + generator + '_level' + loadlevel + '/'
+
+    if gan:
+        raise NotImplementedError
+    else:
+        save_dir = datadir + generator + '_level' + str(level) + '/'
+        load_dir = datadir + generator + '_level' + loadlevel + '/'
     curdir = os.path.dirname(os.path.abspath(__file__))
+    np.random.seed(1002)
+    tf.set_random_seed(1002)
 
     #
     # Load Data
@@ -80,11 +97,29 @@ def main(level=0, loading=False, training=True, viewing=False):
         # imsize = 28
         # colors = 1
         raise NotImplementedError
+    elif imgnetbool:
+        if training:
+            y_train, x_train, msk_train = load_imagenet(0, level, training)
+            nr_train = msk_train.shape[0]
+            y_train = np.reshape(y_train, (nr_train, -1))
+            y_test, x_test, msk_test, nr_test = None, None, None, None
+        else:
+            y_test, x_test, msk_test = load_imagenet(20, level, training)
+            nr_test = msk_test.shape[0]
+            y_train, x_train, msk_train, nr_train = None, None, None, None
+        nr_samples = None
+        imsize = 320
+        colors = 3
     else:
         raise NotImplementedError
 
     # Build Network
-    batch_size = 1000
+    if cifar10bool:
+        batch_size = 1000
+    elif imgnetbool:
+        batch_size = 100
+    else:
+        raise NotImplementedError
     occ_img_placeholder = tf.placeholder(tf.float32, [batch_size, imsize, imsize, colors])
     msk_placeholder = tf.placeholder(tf.float32, [batch_size, imsize, imsize])
     if mnistbool:
@@ -98,8 +133,17 @@ def main(level=0, loading=False, training=True, viewing=False):
             img_recons = tiny_full_network(occ_img_placeholder, msk_placeholder)
         elif generator is 'fullfull':
             img_recons = tiny_fullfull_network(occ_img_placeholder, msk_placeholder)
+        else:
+            raise NotImplementedError
     elif klab325bool:
         raise NotImplementedError
+    elif imgnetbool:
+        if generator is 'outshape':
+            img_recons = outshapegen_network(occ_img_placeholder, msk_placeholder)
+        elif generator is 'deepoutshape':
+            img_recons = deepoutshapegen_network(occ_img_placeholder, msk_placeholder)
+        else:
+            raise NotImplementedError
     else:
         raise NotImplementedError
     print('Network built successfully')
@@ -107,23 +151,36 @@ def main(level=0, loading=False, training=True, viewing=False):
     #
     # Build Optimizer
     #
-    train_iters = int(nr_samples * train_cnst / batch_size)
+    if imgnetbool:
+        train_iters = 600
+    else:
+        train_iters = int(nr_samples * train_cnst / batch_size)
     true_img_placeholder = tf.placeholder(tf.float32, shape=[batch_size, imsize * imsize * colors])
-    y_train = np.reshape(y_train, (nr_train, imsize * imsize * colors))
     lx = binary_crossentropy(true_img_placeholder, tf.reshape(img_recons, [batch_size, imsize * imsize * colors]))
     lx = tf.reduce_mean(tf.reduce_sum(lx, 1))
     l2 = tf.reduce_mean(0.0001 * tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)))
     cost = lx+l2
     optimizer = tf.train.AdamOptimizer(1e-3, beta1=0.5)
     trainer = optimizer.minimize(cost)
-    fetches = []
+    genfetches = []
+    disfetches = []
 
-    fetches.extend([cost, trainer])
+    genfetches.extend([cost, trainer])
+    if gan:
+        disfetches.extend([discost, distrainer])
     lxs = [0] * train_iters
     # fetches.extend([lx, l2, cost, trainer])
     # lxs = [0] * train_iters
     # l2s = [0] * train_iters
     # costs = [0] * train_iters
+
+    #
+    # Check if your are just testing program
+    #
+    # if testing:
+    #     print('This is only a test')
+    #     train_iters = int(train_iters/100)
+    #     batch_size = batch_size/100
 
     #
     # Train Network
@@ -140,23 +197,32 @@ def main(level=0, loading=False, training=True, viewing=False):
     if training:
         print('Training ' + generator + ' network with difficulty level ' + str(level) + ' for ' + str(train_iters) +
               ' iterations...')
-        indices = list(range(nr_train))
-        for i in range(train_iters):
-            isis = random.sample(indices, batch_size)
-            occ_batch = x_train[isis, :, :, :]
-            true_batch = y_train[isis, :]
-            mask_batch = msk_train[isis, :, :]
-            # occ_batch = x_train[i*batch_size:(i+1)*batch_size, :, :, :]
-            # true_batch = x_true[i * batch_size:(i+1) * batch_size, :]
-            # mask_batch = masks[i * batch_size:(i+1) * batch_size, :, :]
-            feed_dict = {true_img_placeholder: true_batch, occ_img_placeholder: occ_batch, msk_placeholder: mask_batch}
-            results = sess.run(fetches, feed_dict)
-            # lxs[i], l2s[i], costs[i], _ = results
-            lxs[i], _ = results
-            # print(lxs)
-            if i % 50 == 0:
-                print("iter=%d : Cost: %f" % (i, lxs[i]))
-                # print("iter=%d : Cost is %f, Lx is %f, L2 is %f" % (i, costs[i], lxs[i], l2s[i]))
+
+        nr_iters_per_batch = int(train_iters / nr_batches)
+        for b in range(nr_batches):
+            indices = list(range(nr_train))
+            for i in range(nr_iters_per_batch):
+                isis = random.sample(indices, batch_size)
+                occ_batch = x_train[isis, :, :, :]
+                true_batch = y_train[isis, :]
+                mask_batch = msk_train[isis, :, :]
+                # occ_batch = x_train[i*batch_size:(i+1)*batch_size, :, :, :]
+                # true_batch = x_true[i * batch_size:(i+1) * batch_size, :]
+                # mask_batch = masks[i * batch_size:(i+1) * batch_size, :, :]
+                feed_dict = {true_img_placeholder: true_batch,
+                             occ_img_placeholder: occ_batch,
+                             msk_placeholder: mask_batch}
+                results = sess.run(genfetches, feed_dict)
+                # lxs[i], l2s[i], costs[i], _ = results
+                lxs[i], _ = results
+                # print(lxs)
+                if i % trainprintint == 0:
+                    print("iter=%d : Cost: %f" % (i+b*nr_iters_per_batch, lxs[i]))
+                    # print("iter=%d : Cost is %f, Lx is %f, L2 is %f" % (i, costs[i], lxs[i], l2s[i]))
+            if b < nr_batches - 1:
+                print('New training batch (' + str(b+1) + ')')
+                y_train, x_train, msk_train = load_imagenet(b+1, level, True)
+                y_train = np.reshape(y_train, (nr_train, imsize * imsize * colors))
 
         # Save Model
         ckpt_file = os.path.join(save_dir, "drawmodel.ckpt")
@@ -191,15 +257,19 @@ def main(level=0, loading=False, training=True, viewing=False):
 if __name__ == "__main__":
 
     # prog = 'training'
-    prog = 'viewing'
+    prog = 'testing'
+    # prog = 'jj'
 
     if prog is 'training':
-        main(0)
-        tf.reset_default_graph()
-        for lev in range(1, 6):
+        # main(1)
+        # tf.reset_default_graph()
+        for lev in range(5, 9):
             main(lev, True)
             tf.reset_default_graph()
-    elif prog is 'viewing':
-        main(5, True, False, True)
+    elif prog is 'testing':
+        main(6, True, False, True)
     else:
-        raise NotImplementedError
+        for lev in range(3, 5):
+            main(lev, True)
+            tf.reset_default_graph()
+        # raise NotImplementedError

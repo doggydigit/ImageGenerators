@@ -54,14 +54,15 @@ def occlude(imgs, minsz, maxsz):
 
 def occlude_imagenet(imgs, minsz, maxsz):
     nr_imgs = len(imgs)
-    occ_imgs = imgs[:]
+    occ_imgs = np.copy(imgs)
     msks = [None] * nr_imgs
     for i in range(nr_imgs):
         szs = imgs[i].shape
-        ms = np.min(szs[0:1])
+        ms = np.min(szs[0:2])
         radius = np.random.randint(ms * minsz, ms * maxsz)
+        # print(ms, minsz, maxsz, szs, radius)
         cx = np.random.randint(radius, szs[1]-radius-1)
         cy = np.random.randint(radius, szs[0]-radius-1)
-        # print(szs, radius, cx, cy)
+        # print(cx, cy)
         occ_imgs[i], msks[i] = add_occluder(occ_imgs[i], radius, cx, cy)
     return occ_imgs, msks
