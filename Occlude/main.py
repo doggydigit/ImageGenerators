@@ -25,6 +25,7 @@ def main(level=4, dataset='cifar', small=True):
 
 
 if __name__ == "__main__":
-    # for i in range(5, 9):
+    # for i in range(5, 7):
+    #     print('Occluding Imagenet at level ' + str(i))
     #     main(i, 'imagenet', False)
     main(6, 'imagenet', False)
