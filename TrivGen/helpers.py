@@ -62,22 +62,8 @@ def fullnet(img, msk, imgsz, msksz, tgtsz, name, sigbool=False):
 
 
 def binary_crossentropy(t, o):
-    # print(max(o))
-    # print(max(t))
     eps = 1e-6
-    # o = tf.Print(o, [np.max(np.max(np.max(np.max(o))))], 'this is o:')
-    # t = tf.Print(t, [np.max(np.max(np.max(t)))], 'this is t:')
-    # j = 1.0 - o + eps
-    # j = tf.Print(j, [tf.count_nonzero(tf.is_nan(j))], 'this is j:')
-    # a = tf.log(j)
-    # b = (1.0 - t)
-    # c = tf.log(o + eps)
-    # a = tf.Print(a, [tf.count_nonzero(tf.is_nan(a))], 'this is a:')
-    # b = tf.Print(b, [tf.count_nonzero(tf.is_nan(b))], 'this is b:')
-    # c = tf.Print(c, [tf.count_nonzero(tf.is_nan(c))], 'this is c:')
-    # d = t * c
-    # d = tf.Print(d, [tf.count_nonzero(tf.is_nan(d))], 'this is d:')
-    # return -(d + b * a)
+
     return -(t * tf.log(o + eps) + (1.0 - t) * tf.log(1.0 - o + eps))
 
 
